@@ -1,0 +1,37 @@
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+
+# 定义函数
+def f(var):
+    x, y = var
+    return -x*y*2**y  # 取负值，因为我们要寻找的是最大值，而函数默认寻找的是最小值
+
+# 优化求解
+cons = ({'type': 'eq', 'fun': lambda var: np.array([var[0] + var[1] - 10])})  # x+y=10
+bnds = ((0, 10), (0, 10))  # x,y的范围都在[0,10]内
+res = minimize(f, [0, 10], bounds=bnds, constraints=cons)
+x_max, y_max = res.x
+z_max = -res.fun  # 取反得到最大值
+
+# 打印结果
+print(f"最大值在点({x_max:.4f}, {y_max:.4f})处，z的最大值为 {z_max:.4f}")
+
+# 绘制三维图像
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+x = np.linspace(0, 10, 100)
+y = 10 - x
+z = x*y*2**y
+
+ax.plot(x, y, z, label='z=xy*2^y')
+ax.scatter(x_max, y_max, z_max, c='r')  # 在最大值点处添加一个红点
+ax.text(x_max, y_max, z_max, f'Max at x={x_max:.2f}, y={y_max:.2f}', fontsize=12)  # 在最大值点显示坐标
+
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+
+plt.show()
