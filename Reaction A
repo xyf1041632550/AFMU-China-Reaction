@@ -1,0 +1,84 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+from scipy.integrate import odeint
+
+#计算速率
+def reaction_rate(kcat, concs, km, Ex):
+    v2=(Ex[0] * kcat[0] * concs[2]) / (km[0] + concs[2])
+    v3=(Ex[1] * kcat[1] * concs[4]) / (km[1] + concs[4])
+    return [v2,v3]
+
+def reaction_rates(concs,k):
+    v1=k1*concs[0]*concs[1]
+    return v1
+
+def simulate_reaction(A0, B0, C0, D0, E0, F0, k, km, kcat, Ex, T, dt):
+    #初始浓度 
+    concs = np.array([A0, B0, C0, D0, E0, F0])
+    
+    #时间离散
+    t = np.arange(0, T+dt, dt)
+    
+    #记录浓度随时间变化
+    conc_history = np.zeros((len(t), 6))
+    conc_history[0] = concs
+    
+    #模拟反应过程
+    for i in range(1, len(t)):
+        #计算速率
+        v2, v3 = reaction_rate(kcat, concs, km, Ex)
+        v1 = reaction_rates(concs,k)
+        
+        #更新浓度
+        concs[0] -= v1 * dt + v2 * dt
+        concs[1] -= v1 * dt
+        concs[2] += v1 * dt - v2 * dt
+        concs[3] += v2 * dt * 5
+        concs[4] += v2 * dt - v3 * dt
+        concs[5] += v3 * dt
+        
+        #记录浓度随时间变化
+        conc_history[i] = concs
+    
+    return t, conc_history
+
+#初始浓度
+A0=1.0
+B0=5
+C0=0
+D0=0
+E0=0
+F0=0
+
+#k值
+k1=1.3
+
+#米氏常数
+km1,km2=744,0.28
+
+#酶浓度
+Ex1,Ex2=10,0.05
+
+#反应最大速率
+kcat1,kcat2=737.6,115.5
+
+#时间步长和总模拟时间
+T=2
+dt=0.001
+
+#反应动力学模拟
+t, conc_history = simulate_reaction(A0, B0, C0, D0, E0, F0, k1, [km1,km2], [kcat1,kcat2], [Ex1,Ex2], T, dt)
+
+#绘图
+
+plt.plot(t, conc_history[:,0], label="A")
+plt.plot(t, conc_history[:,1], label="B")
+plt.plot(t, conc_history[:,2], label="C")
+plt.plot(t, conc_history[:,3], label="D")
+plt.plot(t, conc_history[:,4], label="E")
+plt.plot(t, conc_history[:,5], label="F")
+plt.xlabel("Time")
+plt.ylabel("Concentration")
+plt.legend()
+plt.show()
