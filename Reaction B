@@ -1,0 +1,108 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+#Calculation settings
+dt=0.01
+tmax=60*8
+
+#Initiate parameters (SI units)
+Cas_total=1e-9 #100 nM #所有Cas蛋白
+Cas_i=Cas_total #失活Cas
+assDNA=200e-9 #200 uM assistant DNA
+sgDNA=1e-9 #1 nM 初始sgDNA
+ccDNA=250e-9 #250 nM 环状DNA，作为sgDNA前体
+preP=400e-9 #400 nM 交联纳米金
+P=0 #单体纳米金
+
+#Constants
+kcat_Casi=1.1e1 #未活化Cas切割三元复合物的速率常数 --有文献支持
+Km_sgDNA=1.8e-7 #未活化Cas切割三元复合物的与sgDNA结合的Km常数 --有文献支持
+Km_assDNA=1e-7 #未活化Cas切割三元复合物的与assistant DNA结合的Km常数 --有文献支持
+kcat_Casa=5e1 #活化Cas切割non-target的速率，应大于kcat_Casi（无R-loop限速步骤）
+Km_Casa=1e-8 #活化Cas结合non-target的Km常数，应小于Km_assDNA
+tau=0.08 #(s) #活化Cas的平均存在时间
+k_Casa=1/tau
+
+#Velocity
+def generate_Velocity():
+    v1=(kcat_Casi*Cas_i*assDNA*sgDNA)/(assDNA*sgDNA+assDNA*Km_sgDNA+sgDNA*Km_assDNA+Km_sgDNA*Km_assDNA)
+    v2=(Cas_total-Cas_i)*k_Casa
+    v3=(kcat_Casa*(Cas_total-Cas_i)*ccDNA)/(Km_Casa*(1+preP/Km_Casa)+ccDNA)
+    v4=(kcat_Casa*(Cas_total-Cas_i)*preP)/(Km_Casa*(1+ccDNA/Km_Casa)+preP)
+    return(np.array([v1,v2,v3,v4]))
+
+#Components Initiates
+t=0
+v1_list=np.array([])
+v2_list=np.array([])
+v3_list=np.array([])
+v4_list=np.array([])
+t_list=np.array([])
+sgDNA_list=np.array([])
+Cas_a_list=np.array([])
+P_list=np.array([])
+assDNA_list=np.array([])
+ccDNA_list=np.array([])
+
+#Components Updates
+while t<tmax:
+    v_list=generate_Velocity()
+    sgDNA+=(v_list[2]-v_list[0])*dt
+    Cas_i+=(v_list[1]-v_list[0])*dt
+    assDNA+=-1*(v_list[0])*dt
+    preP+=-1*(v_list[3])*dt
+    P+=v_list[3]*dt
+    v1_list = np.append(v1_list,v_list[0])
+    v2_list = np.append(v2_list, v_list[1])
+    v3_list = np.append(v3_list, v_list[2])
+    v4_list = np.append(v4_list, v_list[3])
+    t_list=np.append(t_list,t)
+    sgDNA_list = np.append(sgDNA_list,sgDNA)
+    Cas_a_list = np.append(Cas_a_list,(Cas_total-Cas_i)/Cas_total)
+    P_list = np.append(P_list,P/(P+preP))
+    assDNA_list=np.append(assDNA_list,assDNA)
+    ccDNA_list=np.append(ccDNA_list,ccDNA)
+    t+=dt
+
+#Plotting
+fig_v = plt.figure(figsize=(12,8)) #width/100,height/100
+axs_v1 = fig_v.add_subplot(221)
+axs_v2 = fig_v.add_subplot(222)
+axs_v3 = fig_v.add_subplot(223)
+axs_v4 = fig_v.add_subplot(224)
+axs_v1.plot(t_list,v1_list)
+axs_v1.set_xlabel("time(s)")
+axs_v1.set_ylabel("v1")
+axs_v2.plot(t_list,v2_list)
+axs_v2.set_xlabel("time(s)")
+axs_v2.set_ylabel("v2")
+axs_v3.plot(t_list,v3_list)
+axs_v3.set_xlabel("time(s)")
+axs_v3.set_ylabel("v3")
+axs_v4.plot(t_list,v4_list)
+axs_v4.set_xlabel("time(s)")
+axs_v4.set_ylabel("v4")
+plt.subplots_adjust(hspace=0.5)
+plt.savefig("./velocity.png",dpi=300,bbox_inches = 'tight')
+
+
+fig_c = plt.figure(figsize=(12,8))
+axs_Cas_a=fig_c.add_subplot(221)
+axs_sgDNA=fig_c.add_subplot(222)
+axs_P=fig_c.add_subplot(224)
+axs_assDNA=fig_c.add_subplot(223)
+axs_Cas_a.plot(t_list,Cas_a_list)
+axs_Cas_a.set_xlabel("time(s)")
+axs_Cas_a.set_ylabel("Cas_a_percentage")
+axs_sgDNA.plot(t_list,sgDNA_list)
+axs_sgDNA.set_xlabel("time(s)")
+axs_sgDNA.set_ylabel("sgDNA")
+axs_P.plot(t_list,P_list)
+axs_P.set_xlabel("time(s)")
+axs_P.set_ylabel("Result")
+axs_assDNA.plot(t_list,assDNA_list)
+axs_assDNA.set_xlabel("time(s)")
+axs_assDNA.set_ylabel("assDNA")
+plt.subplots_adjust(hspace=0.5)
+plt.savefig("./concentration.png",dpi=300,bbox_inches = 'tight')
+plt.show()
